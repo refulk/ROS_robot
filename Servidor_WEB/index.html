@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<link rel="stylesheet" href="estilo.css">
+
+	<title>Contato</title>
+</head>
+<body>
+	<div class="row">
+		<div class="column">	
+			<section class="content">
+				<div class="contato">
+					<h1>Criar tarefas</h1>
+
+					<iframe style="display:none;" name="recebeForm"></iframe>
+
+					<!--
+					<form class="form" method="POST" action="./main.php">
+						-->
+					<form name="formTasks" class="form" method="POST" action="main.php" target="recebeForm">
+						<h3>Selecione</h3>
+
+						<select class="field" name="cmbCarga" id="cmbCarga" onchange="funcCarga(this);">
+							<option value="" disabled selected>Ponto de Carga</option>
+						</select>
+
+						<select class="field" name="cmbDescarga" id="cmbDescarga" onchange="funcDescarga();" disabled>
+							<option value="" disabled selected>Ponto de Descarga</option>
+						</select>
+
+						<input class="field" type="button" id="btnAddTarefa" value="Adicionar tarefa" onclick="funcbtnAddTarefa()" disabled/>
+						<input class="field" type="button" id="btnLimparTarefa" value="Excluir tarefas" onclick="funcbtnLimparTarefa()" disabled/>
+
+						<h3>Lista de tarefas</h3>
+						
+						<textarea rows="1" class="field" id="tabTarefas" name="name" cols="40" rows="5" readonly></textarea>
+						<input class="field" type="submit" type="button" id="btnExecutar" value="EXECUTAR" onclick="funcbtnExecutar()" disabled/>
+
+					</form>
+				</div>
+			</section>
+		</div>
+		
+		<div class="column">
+			<section class="content">
+				<div>
+					<h1>Acompanhe em tempo real</h1>
+					<img src="" alt="imgVideo" id="imgVideo" style="width:500px;height:auto;"/>
+					<img src="" alt="imgVideoH" id="imgVideoH" style="width:500px;height:auto;" hidden/>
+					<img src="" alt="imgVideoH" id="imgVideoH2" style="width:500px;height:auto;" hidden/>
+					  <!-- sidebar-wrapper  
+
+					        <embed id="embedGNU" class="embedSite" type="text/html" src="acoes.html"/>
+
+					        <iframe src="acoes.html" 
+								        onload="resizeIframe(this);">
+							</iframe>
+					    -->			
+				   	 <h2>Histórico de tarefas</h2>	
+					  <main class="page-content">
+					    <div class="container-fluid">
+					      <div class="changeScale">			
+								<embed id="embedGNU" class="embedSite" type="text/html" src="acoes.html"/>			        
+						         <iframe src="acoes.html" 
+								        onload="resizeIframe(this);" style="display = 'none';"">
+								</iframe>
+					      </div>
+					    </div>
+					  </main>
+				</div>  
+			</section>
+		</div>
+	</div>
+	<script type="text/javascript" src="script.js"></script>
+</body>
+</html>

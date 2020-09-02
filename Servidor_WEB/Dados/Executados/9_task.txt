@@ -1,0 +1,2 @@
+Carga:1;Descarga:5;
+Carga:3;Descarga:4;
