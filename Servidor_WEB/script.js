@@ -27,23 +27,12 @@ function refreshImgVideo()
 {
 	// create a new timestamp     
 	var timestamp = new Date().getTime();  
-	//document.getElementById("imgVideo").src = "Img/imgVideo.png?t=" + timestamp;  
-
-	//var file = "Img/imgVideo"+imgIndex.toString()+".png?t=" + timestamp;
 	var file = "Img/imgVideo.png?t=" + timestamp;
 	var img = new Image();
 	img.src = file;
 	img.onload = function() {
 		document.getElementById("imgVideo").src = file;
-		//console.log("Yes "+ imgIndex.toString());
 	}
-	//img.onerror = function() {
-		//imgIndex++;
-		//if(imgIndex >= 11)
-		//	imgIndex = 0;
-		//console.log("Not "+ imgIndex.toString());
-		//document.getElementById("imgVideo").src = "Img/imgVideoBkp.png?t=" + timestamp; 
-	//}
 }		
 
 function loadCmbCarga()
@@ -175,60 +164,6 @@ function funcbtnExecutar()
 	funcLimpar();
 }
 
-
-/*
-document.getElementById("btnCarregar").onclick = function() {
-    var comboCidades = document.getElementById("cboCidades");
-
-    var opt0 = document.createElement("option");
-    opt0.value = "0";
-    opt0.text = "";
-    comboCidades.add(opt0, comboCidades.options[0]);
-
-    var opt1 = document.createElement("option");
-    opt1.value = "scs";
-    opt1.text = "São Caetano do Sul";
-    comboCidades.add(opt1, comboCidades.options[1]);
-
-    var opt2 = document.createElement("option");
-    opt2.value = "sa";
-    opt2.text = "Santo André";
-    comboCidades.add(opt2, comboCidades.options[2]);
-
-    var opt3 = document.createElement("option");
-    opt3.value = "sbc";
-    opt3.text = "São Bernardo do Campo";
-    comboCidades.add(opt3, comboCidades.options[3]);
-
-};
-*/
-
-/*
-document.getElementById("btnEnviar").onchange = function() {
-    console.log("OK2");
-    //<?php echo teste();?> 
-    console.log("OK 2");
-};
-*/
-
 function msg() {
   alert("Você clicou no botão!");
 }
-
-
-/*
-var select = document.getElementById("cboCidades");
-var options = [];
-var option = document.createElement('option');
-
-//for (var i = 2011; i >= 1900; --i)
-for (var i = 1900; i < 2012; ++i)
-{
-    //var data = '<option value="' + escapeHTML(i) +'">" + escapeHTML(i) + "</option>';
-    option.text = option.value = i;
-    options.push(option.outerHTML);
-}
-
-select.insertAdjacentHTML('beforeEnd', options.join('\n'));
-*/
-

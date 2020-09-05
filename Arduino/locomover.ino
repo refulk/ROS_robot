@@ -97,8 +97,6 @@ void set_delayPassoCurva(int curvaVel, boolean m0, boolean m1, boolean m2, boole
   int teste = (valor * 100);
   char testeChar[10] = "";
   itoa(teste,testeChar,10); 
-//  if(responder)
-//    answerROSmsg(testeChar);
   if(m0)
     delayPassoCurva[0] = delayPasso;
   else

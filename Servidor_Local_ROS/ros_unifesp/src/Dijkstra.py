@@ -1,14 +1,10 @@
 from collections import deque, namedtuple
 
-#https://dev.to/mxl/dijkstras-algorithm-in-python-algorithms-for-beginners-dkc
-# we'll use infinity as a default distance to nodes.
 inf = float('inf')
 Edge = namedtuple('Edge', 'start, end, cost, direction')
 
-
 def make_edge(start, end, cost=1, direction=2):
   return Edge(start, end, cost, direction)
-
 
 class Graph:
     def __init__(self, edges):
@@ -100,12 +96,3 @@ class Graph:
         if path:
             path.appendleft(current_vertex)
         return path
-
-'''z
-graph = Graph([
-    ("a", "b", 7),  ("a", "c", 9),  ("a", "f", 14), ("b", "c", 10),
-    ("b", "d", 15), ("c", "d", 11), ("c", "f", 2),  ("d", "e", 6),
-    ("e", "f", 9)])
-
-print(graph.dijkstra("a", "e"))
-'''
