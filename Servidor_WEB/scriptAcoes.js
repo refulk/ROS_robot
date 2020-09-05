@@ -1,6 +1,9 @@
 //executa após carregar a janela HTML
 window.onload = function() 
 {
+	// loadCmbCarga();	
+	// console.log("OK2");
+ //    refreshImgVideo();
  	exibirDados();
 	window.setInterval(function() {
 		location.reload(true);

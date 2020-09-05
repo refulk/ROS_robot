@@ -1,5 +1,7 @@
 from collections import deque, namedtuple
 
+#https://dev.to/mxl/dijkstras-algorithm-in-python-algorithms-for-beginners-dkc
+# we'll use infinity as a default distance to nodes.
 inf = float('inf')
 Edge = namedtuple('Edge', 'start, end, cost, direction')
 

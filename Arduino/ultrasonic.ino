@@ -4,6 +4,15 @@
 const int echoPin[] = {17,29,21,32}; //PINO DIGITAL UTILIZADO PELO HC-SR04 ECHO(RECEBE)
 const int trigPin[] = {16,27,20,47}; //PINO DIGITAL UTILIZADO PELO HC-SR04 TRIG(ENVIA)
 
+//const int echoPin1 = 17; //PINO DIGITAL UTILIZADO PELO HC-SR04 ECHO(RECEBE)#frente
+//const int trigPin1 = 16; //PINO DIGITAL UTILIZADO PELO HC-SR04 TRIG(ENVIA)
+//const int echoPin2 = 29; //PINO DIGITAL UTILIZADO PELO HC-SR04 ECHO(RECEBE)#direita
+//const int trigPin2 = 27; //PINO DIGITAL UTILIZADO PELO HC-SR04 TRIG(ENVIA)
+//const int echoPin3 = 21; //PINO DIGITAL UTILIZADO PELO HC-SR04 ECHO(RECEBE)#tras
+//const int trigPin3 = 20; //PINO DIGITAL UTILIZADO PELO HC-SR04 TRIG(ENVIA)
+//const int echoPin4 = 32; //PINO DIGITAL UTILIZADO PELO HC-SR04 ECHO(RECEBE)#esquerda
+//const int trigPin4 = 47; //PINO DIGITAL UTILIZADO PELO HC-SR04 TRIG(ENVIA)
+
 Ultrasonic ultrasonic0(trigPin[0],echoPin[0]); //INICIALIZANDO OS PINOS DO ARDUINO
 Ultrasonic ultrasonic1(trigPin[1],echoPin[1]); //INICIALIZANDO OS PINOS DO ARDUINO
 Ultrasonic ultrasonic2(trigPin[2],echoPin[2]); //INICIALIZANDO OS PINOS DO ARDUINO
@@ -43,6 +52,23 @@ void setupUltrasonic()
 }
 
 //MÉTODO RESPONSÁVEL POR CALCULAR A DISTÂNCIA
+//void hcsr04_OLD()
+//{
+//    digitalWrite(trigPin, LOW); //SETA O PINO 6 COM UM PULSO BAIXO "LOW"
+//    delayMicroseconds(2); //INTERVALO DE 2 MICROSSEGUNDOS
+//    digitalWrite(trigPin, HIGH); //SETA O PINO 6 COM PULSO ALTO "HIGH"
+//    delayMicroseconds(10); //INTERVALO DE 10 MICROSSEGUNDOS
+//    digitalWrite(trigPin, LOW); //SETA O PINO 6 COM PULSO BAIXO "LOW" NOVAMENTE
+//    //FUNÇÃO RANGING, FAZ A CONVERSÃO DO TEMPO DE
+//    //RESPOSTA DO ECHO EM CENTIMETROS, E ARMAZENA
+//    //NA VARIAVEL "distancia"
+//    distancia = (ultrasonic.Ranging(CM)); //VARIÁVEL GLOBAL RECEBE O VALOR DA DISTÂNCIA MEDIDA
+//    result = String(distancia); //VARIÁVEL GLOBAL DO TIPO STRING RECEBE A DISTÂNCIA(CONVERTIDO DE INTEIRO PARA STRING)
+//    
+////    delay(500); //INTERVALO DE 500 MILISSEGUNDOS
+//}
+
+//MÉTODO RESPONSÁVEL POR CALCULAR A DISTÂNCIA
 void hcsr04(int direcao)
 {
     digitalWrite(trigPin[direcao], LOW); //SETA O PINO 6 COM UM PULSO BAIXO "LOW"
@@ -71,16 +97,47 @@ void detectarObstaculo(char *obstaculo, int direcao)
 {
   char aux[10];
   if(freeWay(direcao)) 
-  { 
+  { //livre = 1
+    //return "0"; //livre
     strcpy(obstaculo,"0");
   }
   else
-  { 
+  { //obstaculo detectado = 0
+    //return char(direcao);
     direcao++;
     itoa(direcao,obstaculo,10); 
+    //strcpy(obstaculo,"1");  
   }
 }
-
+/*
+char detectarObstaculo(int direcao)
+{
+  if(freeWay(direcao)) 
+  { //livre = 1
+    if(valores[direcao][index] == 0)
+    {
+      soma[direcao]++;
+      valores[direcao][index] = 1;      
+    }
+  }
+  else
+  { //obstaculo detectado = 0
+    if(valores[direcao][index] == 1)z
+    {
+      soma[direcao]--;   
+      valores[direcao][index] = 0;       
+    }  
+  }
+  index++;
+  if(index == 5)
+    index = 0;
+  if(soma[direcao] <= 2)
+    return char(direcao);
+    //return '1'; //sensor 1 com obstaculo
+  else
+    return '0'; //livre
+}
+*/
 void loopUltrasonic(int direcao)
 {
   

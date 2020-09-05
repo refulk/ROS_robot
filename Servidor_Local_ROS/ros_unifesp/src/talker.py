@@ -66,7 +66,7 @@ import os
 print("Iniciando...")
 #Caso true, serao enviados os comandos do teclado
 #Caso false, o controle sera autonomo
-comandarTeclado = True
+comandarTeclado = False
 alvo = 1
 pausaInicial = 1 #0 ativa a pausa
 #omni = 1 #omnidirecional
@@ -77,10 +77,28 @@ pausaInicial = 1 #0 ativa a pausa
 # 4 = tras
 pi = math.pi
 path = '/var/www/html/robot_web/Dados/'
+pathName = "obstaculos/F_2obstaculosFixo/5" #onde serao salvos os resultados
+#(8-3)(0-5)(8-5)(0-3)(8-3)(0-5)(8-5)(0-3)(8-3)(0-3)
 
 imgIndex = 0
 obstaculo = False
 arestas_excluidas = []
+
+salvarTempo = time.time()
+tempo_total=[0,0]
+erro_txt=[]
+dist_calc=[]
+
+traj_x=[]
+traj_y=[]
+traj_theta=[]
+tempo=[]
+
+lastTempo = 0
+tempo_Aux = []
+traj_x_Aux=[]
+traj_y_Aux=[]
+traj_theta_Aux=[]
 
 class NonBlockingConsole(object):
 
@@ -128,11 +146,11 @@ def comandarTecladoFunc(ch):
     switcher={
         'w':"028499", #frente
         #'w':"028499", #frente
-        'a':"02840160", #CURVAesquerda
-        'd':"02840060", #CURVAdireita
+        # 'a':"02840160", #CURVAesquerda
+        # 'd':"02840060", #CURVAdireita
+        'a':"048499", #esquerda
+        'd':"058499", #direita
         's':"038499", #tras
-        #'a':"048499", #esquerda
-        #'d':"058499", #direita
         'e':"008499", #gira Horario
         'q':"018499", #gira Anti Horario
         'z':"068499", #dFD
@@ -241,7 +259,7 @@ def desenharMapa(img, rx, ry, rt, radius, tetaAlvo, dt, dist):
     ######################################################################    
     ######################################################################
     #Limites do mapa
-    pts = np.array([[0,50],[639,50],[639,380],[0,380]], np.int32)
+    pts = np.array([[0,50],[640,50],[640,380],[0,380]], np.int32)
     cv2.polylines(img,[pts],True,(0,0,0), 2)
 
     #Carga e desgarca
@@ -345,7 +363,29 @@ def getInclination(x_red, y_red, x_blue, y_blue, robot_center_x, robot_center_y,
         teorico = round(teorico,2)
         return teorico, target, direcao, default
 
-
+def salvar_Posicao_Tempo(xA,yA,thetaA):
+    global salvarTempo
+    global tempo_Aux
+    global traj_x_Aux
+    global traj_y_Aux
+    global traj_theta_Aux
+    global lastTempo
+    ind = len(tempo_Aux)
+    if(ind > 0):
+        tAcum = tempo_Aux[ind-1]
+    else:
+        tAcum = lastTempo
+    dif = time.time()-salvarTempo
+    if(dif >= 1):
+        salvarTempo = time.time()
+        if(dif > 1.5):
+            tempo_Aux.append(tAcum + int(dif))
+        else:
+            tempo_Aux.append(tAcum + 1)
+        lastTempo = tempo_Aux[ind]
+        traj_x_Aux.append(xA)
+        traj_y_Aux.append(yA)
+        traj_theta_Aux.append(thetaA)
 
 #Processamento de imagem
 def getPosition(target_x=0, target_y=0, tT=99, step=0, omnidirecional=3):
@@ -420,6 +460,8 @@ def getPosition(target_x=0, target_y=0, tT=99, step=0, omnidirecional=3):
     y_blue = dist_y - (y_blue * dist_y / CAMERA_HEIGHT)
     ''' 
     robot_inclination, target_inclination, direcao, default_inclination = getInclination(x_red, y_red, x_blue, y_blue, robot_center_x, robot_center_y, target_x, target_y, omnidirecional)    
+    #robot_inclination = round ( -1*math.atan2(x_red - x_blue, y_red - y_blue)+math.pi, 2)
+    #target_inclination = round ( -1*math.atan2(target_x - robot_center_x, target_y - robot_center_y)+math.pi, 2)
 
     x_red = int(x_red)
     y_red = int(y_red)
@@ -428,13 +470,25 @@ def getPosition(target_x=0, target_y=0, tT=99, step=0, omnidirecional=3):
     robot_center_x = int(x_red)
     robot_center_y = int(y_red)
     dist_r_b = dist(x_red,y_red,x_blue,y_blue)
+    #dist_r_b = ((x_red-x_blue)**2 + (y_red-y_blue)**2)**(0.5)
+    #List_X.append(robot_center_x)
+    #List_Y.append(robot_center_y)  
                 
     ########################################################################################
+    #Atualizando dados
+    #message = str(robot_center_x) + " | " + str(robot_center_y) + " | " + str(robot_inclination) + " | "
+    #message2 = "X: " + str(robot_center_x) + "| Y: " + str(robot_center_y) + "| T: " + str(robot_inclination) + "| tempT: " + str(target_inclination)
+    #print message #exibe posicao
+
+    #font = cv2.FONT_HERSHEY_SIMPLEX
+    #cv2.putText(img, message2,(5, 450), font, 1,(255,255,255),2) #imagem, texto, localizacao, fonte, espessura, cor,    
     if(step == 2):
         desenharMapa(img, robot_center_x, robot_center_y, robot_inclination, max(radius_r, radius_b),tT, default_inclination, dist_r_b) 
     else:        
         desenharMapa(img, robot_center_x, robot_center_y, robot_inclination, max(radius_r, radius_b),target_inclination, default_inclination, dist_r_b) 
     cv2.line(img,(robot_center_x,robot_center_y),(target_x,target_y),(0,0,255),2) #linha do centro do robo ate o objetivo atual
+
+    #img = img[50:380,0:1000] #cortar imagem (crop)
 
     if(time.time() - img_time > 0.1):
         img_time = time.time()
@@ -442,14 +496,19 @@ def getPosition(target_x=0, target_y=0, tT=99, step=0, omnidirecional=3):
         if(imgIndex >= 10):
             imgIndex = 0
             if (os.path.isfile("/var/www/html/robot_web/Img/imgVideo"+str(0)+".png")):
+                #os.rename("/var/www/html/robot_web/Img/imgVideo.png","/var/www/html/robot_web/Img/imgVideoExc.png")
                 os.rename("/var/www/html/robot_web/Img/imgVideo"+str(0)+".png","/var/www/html/robot_web/Img/imgVideo.png")
+                #os.remove("/var/www/html/robot_web/Img/imgVideoExc.png")
         else:
             imgIndex += 1
             if (os.path.isfile("/var/www/html/robot_web/Img/imgVideo"+str(imgIndex)+".png")):
-                os.rename("/var/www/html/robot_web/Img/imgVideo"+str(imgIndex)+".png","/var/www/html/robot_web/Img/imgVideo.png")     
+                #os.rename("/var/www/html/robot_web/Img/imgVideo.png","/var/www/html/robot_web/Img/imgVideoExc.png")
+                os.rename("/var/www/html/robot_web/Img/imgVideo"+str(imgIndex)+".png","/var/www/html/robot_web/Img/imgVideo.png")
+                #os.remove("/var/www/html/robot_web/Img/imgVideoExc.png")                
     cv2.imshow("Frame",img)
     if cv2.waitKey(1) & 0xFF == ord('l'):
         print('exit')
+    salvar_Posicao_Tempo(robot_center_x,robot_center_y,robot_inclination)
     return robot_center_x, robot_center_y, robot_inclination, target_inclination, direcao
 
 #Retorna a media dos 10 valores centrais
@@ -472,7 +531,9 @@ def deltaT(tetaAtual, tetaFinal):
 def returnDirection(tetaAtual, tetaFinal):
     global tAtual_Anterior
     global tAtual_Executar
-    global tmargem 
+    global tmargem
+    #tAtual = tetaAtual + pi
+    #tFinal = tetaFinal + pi  
     tAtual = tetaAtual
     tFinal = tetaFinal 
 
@@ -487,19 +548,27 @@ def returnDirection(tetaAtual, tetaFinal):
         tAtual_Executar = tAtual
     if(tDelta < 0):
         if(abs(tDelta) + tmargem < pi):
+            #print("horario:")
+            #print(str(tDelta)+" = "+str(tAtual)+" - "+str(tFinal))
             #horario
             tmargem = 0
             return 1
         else:
+            #print("anti horario:")
+            #print(str(tDelta)+" = "+str(tAtual)+" - "+str(tFinal))
             #antiHorario
             tmargem = -0.05
             return 0
     else:
         if(abs(tDelta) + tmargem < pi):
+            #print("anti horario:")
+            #print(str(tDelta)+" = "+str(tAtual)+" - "+str(tFinal))
             #antiHorario
             tmargem = 0.05
             return 0
         else:
+            #print("horario:")
+            #print(str(tDelta)+" = "+str(tAtual)+" - "+str(tFinal))
             #horario
             tmargem = 0
             return 1
@@ -527,10 +596,11 @@ def andar(direcao, velocidade):
     elif(direcao == 3): #esquerda
         comandar("04"+velocidade+"99")
            
-def goTo(tX, tY, tT, tDir):
+def goTo(tX, tY, tT, tDir, dest):
     global comando
     global pausaInicial
     global obstaculo
+    global erro_txt
     erroXY = 2
     erroTempT = 0.15 #tetaNoCaminho
     erroTempTinicial = 0.02 #tetaInicial
@@ -554,17 +624,21 @@ def goTo(tX, tY, tT, tDir):
     tempT = getValor(vetTempT)
     #tempT se refere ao Teta durante o deslocamento
     #tT se refere ao Teta desejado na posicao final
+    #while(abs(x - tX) > erroXY or abs(y - tY) > erroXY or abs(t - tT) > erroT):
     while(1):
         if(obstaculo):
             break
+        #vetX[index], vetY[index], vetT[index], vetTempT[index] = getPosition(tX, tY) 
         vetX[index], vetY[index], vetT[index], tempT, direcao = getPosition(tX, tY, tT, step, omni_ativa) 
         omni_ativa = tDir
         x = getValor(vetX)
         y = getValor(vetY)
         t = round(getValor(vetT),2)
+        #tempT = getValor(vetTempT) 
         if(pausaInicial==0):
             pausaInicial = input()
             pausaInicial = 1
+        #x, y, t, tempT = getPosition(tX, tY) 
         index += 1
         if (index == 30):
             index = 0
@@ -576,7 +650,11 @@ def goTo(tX, tY, tT, tDir):
         #primeiro step, apontar para destino com precisao
         if(step == 0):
             if(deltaT(t,tempT) > erroTempTinicial*erro and ((abs(x - tX) > erroXY*(erro*erro) or abs(y - tY) > erroXY*(erro*erro)))):
+            #if(abs(t - tempT) > erroTempTinicial and abs(x - tX)+abs(y - tY) > 1):
                 if(returnDirection(t, tempT) == 1):
+                #if(t<tempT):
+                    #'e':"0084", #gira Horario
+                    #if(abs(t-tempT) > 0.4):
                     if(deltaT(t,tempT) > 0.4):
                         comandar("008499")
                     elif(abs(t-tempT) > 0.15):
@@ -584,7 +662,7 @@ def goTo(tX, tY, tT, tDir):
                     else: 
                         comandar("005599")                       
                 else:
-                    #gira Anti Horario
+                   #'q':"0184", #gira Anti Horario
                     if(deltaT(t,tempT) > 0.4):
                         comandar("018499")
                     elif(abs(t-tempT) > 0.15):
@@ -599,6 +677,7 @@ def goTo(tX, tY, tT, tDir):
             if((abs(x - tX) > erroXY*(erro*erro) or abs(y - tY) > erroXY*(erro*erro))):
                 #Verifica o teta em movimento
                 distancia = dist(x,y,tX,tY)
+                #distancia = ((x-tX)**2 + (y-tY)**2)**(0.5)
                 #define a velocidade da curva (rotacao)
                 if(deltaT(t,tempT) > 0.25):
                     valorCurva = "60"
@@ -606,7 +685,7 @@ def goTo(tX, tY, tT, tDir):
                     valorCurva = "30"
                 #define velocidade transacao                    
                 if(distancia>50):
-                    valorFrente = "84"
+                    valorFrente = "88"
                 elif(distancia > 30):
                     valorFrente = "75"
                 else:
@@ -614,13 +693,14 @@ def goTo(tX, tY, tT, tDir):
                 if(deltaT(t,tempT) > erroTempT): # se o angulo estiver errado
                     erroTempT = 0.04
                     if(returnDirection(t, tempT) == 1):
-                        #gira Horario
+                    #if(t<tempT):
+                        #'e':"0084", #gira Horario
                         if(distancia>35):
                             andarCurva(direcao,valorFrente,"00",valorCurva)
                         else: 
                             comandar("005599")
                     else:
-                        #gira Anti Horario
+                       #'q':"0184", #gira Anti Horario
                         if(distancia>35):
                             andarCurva(direcao,valorFrente,"01",valorCurva)
                         else: 
@@ -632,11 +712,14 @@ def goTo(tX, tY, tT, tDir):
                     else:
                         erroTempT = 0.15
                     if(distancia>50):
-                        andar(direcao, "84")
+                        andar(direcao, "88")
+                        #comandar("0284")
                     elif(distancia > 30):
                         andar(direcao, "75")
+                        #comandar("0275")
                     else:
                         andar(direcao, "65")
+                        #comandar("0265")
 
             else:
                 step = 2
@@ -644,32 +727,42 @@ def goTo(tX, tY, tT, tDir):
         if(step == 2): #se estiver no objetivo
             omni_ativa = 3 #deve ajustar com o angulo da frente com o objetivo
             #Verifica o teta final
-            if(deltaT(t,tT) > erroT and tT != 99):
+            if(deltaT(t,tT) > erroT and tT != 99 and dest == 1):
                 stop = 0
                 if(returnDirection(t, tT) == 1):
-                    #gira Horario
+                #if(t<tT):
+                    #'e':"0084", #gira Horario
                     if(deltaT(t,tT) > 0.2):
                         comandar("008499")
                     else:
                         comandar("006599")                        
                 else:
-                    #gira Anti Horario
+                   #'q':"0184", #gira Anti Horario
                     if(deltaT(t,tT) > 0.2):
                         comandar("018499")
                     else:
                         comandar("016599")                        
             else:
                 comandar("999999") #parado
-                if(stop == 0 and tT != 99):
+                if(stop == 0 and tT != 99 and dest == 1):
                     stop = 1
                     stop_time = time.time()
-                elif(time.time() - stop_time >= 1):
+                elif(time.time() - stop_time >= 1 or dest != 1):
                     #Chegou no ponto desejado
                     #mantem por 1 segundo para ter certeza
                     comandar("999999") #parado
+                    #comando = "9998"
+                    if(dest == 1):                        
+                        erro_txt.append(dist(x,y,tX,tY))
+                        #erro_txt.append( abs(50*math.tan(deltaT(t,tT))) + dist(x,y,tX,tY))
                     break;
+                #elif(tT == 99): 
+                #    #ponto de passagem nao precisa esperar
+                #    comandar("9999") #parado
+                #    break;
 
     comandar("999999") #parado
+    #comando = "9998"
     return x, y, t
 
 #desloca uma distancia. direcao =0 (frente) =2(tras)
@@ -685,7 +778,9 @@ def goToDistance(tX, tY, distance, direcao):
     x1 = x
     y1 = y
     distancia = dist(x,y,x1,y1) 
+    #print("  andar: "+ str(direcao))
     while(abs(distance-distancia) > erroXY and distancia < distance):
+        #vetX[index], vetY[index], vetT[index], vetTempT[index] = getPosition(tX, tY) 
         vetX[index], vetY[index], vetT, tempT, d = getPosition(tX, tY)
         x = getValor(vetX)
         y = getValor(vetY)
@@ -695,6 +790,8 @@ def goToDistance(tX, tY, distance, direcao):
         distancia = dist(x,y,x1,y1) 
         andar(direcao, "65")
     comandar("999999") #parado
+    #comando = "9998"
+    #return x, y
 
 #encontra o ponto mais proximo para comecar
 def first_point():
@@ -710,13 +807,13 @@ def first_point():
     return f_p
 
 def carga_descarga(acao):
-    #def carga_descarga(acao,ponto_atual=0,dest=0,rota=0,indice=0):  
-    #'r':"21"+str(valor), #controla Braco (0 - 13)
-    #'f':"2202", #braco Baixo
-    #'t':"31"+str(valor), #controla Cima (0-18)
-    #'g':"3203", #mao Baixo
-    #'y':"4199", #eletroima on
-    #'h':"4299", #eletroima off 
+#def carga_descarga(acao,ponto_atual=0,dest=0,rota=0,indice=0):  
+#'r':"21"+str(valor), #controla Braco (0 - 13)
+#'f':"2202", #braco Baixo
+#'t':"31"+str(valor), #controla Cima (0-18)
+#'g':"3203", #mao Baixo
+#'y':"4199", #eletroima on
+#'h':"4299", #eletroima off 
     global CD_x
     global CD_y
     global CD_x2
@@ -726,6 +823,9 @@ def carga_descarga(acao):
     carga_time = time.time()
     if(acao == 'D'):
         #descarga
+        #print("descarga")
+
+        #print(" Baixa o braco")
         carga_time = time.time()
         while(time.time() - carga_time < 2):
             comandar("311399") #mao 13
@@ -735,6 +835,7 @@ def carga_descarga(acao):
             comandar("210199") #braco 1
             getPosition()
 
+        #print(" ira andar 14 para frente")
         goToDistance(x, y, 14, 0)
 
         carga_time = time.time()
@@ -743,7 +844,9 @@ def carga_descarga(acao):
             getPosition()
         x =  CD_x2
         y = CD_y2
+        #print(" ira andar 14 para tras")
         goToDistance(x, y, 14, 2)
+        #print(" Levanta o braco")
         carga_time = time.time()
         while(time.time() - carga_time < 2):
             comandar("211399") #braco 13
@@ -751,9 +854,12 @@ def carga_descarga(acao):
         carga_time = time.time()
         while(time.time() - carga_time < 2):
             comandar("311099") #mao 10    
-            getPosition()        
+            getPosition()   
+        #print("___________________________")      
     else:
         #carga 
+        #print("Carga")  
+        #print(" Baixa braco")
         carga_time = time.time()
         while(time.time() - carga_time < 2):
             comandar("311399") #mao 13
@@ -766,10 +872,13 @@ def carga_descarga(acao):
         while(time.time() - carga_time < 2):
             comandar("419999") #ima ON  
             getPosition()        
+        #print(" ira andar 15 para frente")
         goToDistance(x, y, 15, 0)
         
+        #print(" ira andar 15 para tras")
         goToDistance(x, y, 15, 2)        
 
+        #print(" Levanta o braco")
         carga_time = time.time()
         while(time.time() - carga_time < 2):
             comandar("211399") #braco 13
@@ -780,6 +889,8 @@ def carga_descarga(acao):
             getPosition()
         x =  CD_x2
         y = CD_y2
+        #print("___________________________")
+    #print("=================================")
 
 def resetar_grafo():    
     global arestas_excluidas
@@ -788,27 +899,56 @@ def resetar_grafo():
         Dijkstra.graph.add_edge(aresta.split(',')[0],aresta.split(',')[1],int(aresta.split(',')[2].split('.')[0]),int(aresta.split(',')[3]), True)
     arestas_excluidas = []
 
+#calcula a distancia total da rota
+def calc_Dist_Rota(rota):
+    distCalculada = 0
+    for i in range(len(rota)-1):
+        ponto1 = int(rota[i])
+        ponto2 = int(rota[i+1])
+        distCalculada += d_p(targets[ponto1], targets[ponto2])
+    return distCalculada
+
 #planeja a rota ate o destino final
 def plan_route(dest,acao):
     global obstaculo
     global arestas_excluidas
+    global tempo_Aux
+    global traj_x_Aux
+    global traj_y_Aux
+    global traj_theta_Aux
+    global dist_calc
+    global traj_x
+    global traj_y
+    global traj_theta
+    global tempo
     ponto_atual = first_point()   
     ponto_aux = 0
     ponto_ant = 0
     dist_aux = 0
     dir_aux = 0
     arestas_excluidas = []
+    #print("Primeiro ponto: " + str(ponto_atual))
     target_x = int(targets[ponto_atual].split(',')[0])
     target_y = int(targets[ponto_atual].split(',')[1])
     target_t = round(float(targets[ponto_atual].split(',')[2]),2)
     target_d = 2 #primeiro ponto usar omni todas direcoes
-    x, y, t = goTo(target_x, target_y, target_t,target_d)
+    x, y, t = goTo(target_x, target_y, target_t,target_d,0)
+
+    tempoPlanejarRota = 0
     if(ponto_atual != dest):
+        tempoPlanejarRota = time.time()
         rota = Dijkstra.graph.dijkstra(str(ponto_atual), str(dest))
+        print("Planejou a rota em: " + str(time.time()-tempoPlanejarRota))
+
+        dist_calc.append(calc_Dist_Rota(rota)) #salva a distancia da rota calculada
+
+        #print("Atual: " + str(ponto_atual) + " dest: " + str(dest))
+        #print(rota)
         indice = 1 #zero eh o ponto atual
         node = False
         
         while(ponto_atual != dest):
+            #print("indice: " + str(indice))
             if(obstaculo):
                 print("________________________")
                 print("Encontrou obstaculo!")
@@ -817,6 +957,8 @@ def plan_route(dest,acao):
                 #retorna para o ponto anterior (de partida)
                 #Se o indice for zero, fica parado
                 if(indice > 1):
+                    #ponto_aux = ponto_atual
+                    #ponto_atual = int(rota[indice-2])
                     ponto_atual = ponto_atual = ponto_ant
                     #Exclui caminho obstruido
                     dist_aux, dir_aux = Dijkstra.graph.remove_edge(str(ponto_atual), str(ponto_aux))
@@ -824,6 +966,7 @@ def plan_route(dest,acao):
                     arestas_excluidas.append(str(ponto_atual)+','+str(ponto_aux)+','+str(dist_aux)+','+str(dir_aux))               
                     #Calcula nova rota
                     rota = Dijkstra.graph.dijkstra(str(ponto_atual), str(dest))
+                    dist_calc.append(calc_Dist_Rota(rota)) #salva a distancia da rota calculada
                     print("Destino antigo (ponto_aux)")
                     print(ponto_aux)
                     print("Ponto atual (Voltar para)")
@@ -833,6 +976,7 @@ def plan_route(dest,acao):
                         ponto_atual = ponto_aux
                         resetar_grafo()
                         indice -= 1
+                        #rota = Dijkstra.graph.dijkstra(str(ponto_atual), str(dest))
                     else:
                         #se existir caminho zera o indice
                         indice = 0
@@ -844,39 +988,133 @@ def plan_route(dest,acao):
                 node = Dijkstra.graph.get_node_pairs_details(str(ponto_atual),rota[indice])
                 ponto_ant = ponto_atual
                 ponto_atual = int(rota[indice])
+            #print("ponto alvo: " + str(ponto_atual))
             target_x = int(targets[ponto_atual].split(',')[0])
             target_y = int(targets[ponto_atual].split(',')[1])
             if(node != False):
                 target_d = int(node[3]) #busca direcao da aresta
+                #print(target_d)
             else:
                 target_d = 0 #frente e tras
+                #print("target_d zero")
             #cuidado para indice+1 nao estourar o vetor
             if(ponto_atual == dest): #ponto de destino tem o angulo correto
                 target_t = round(float(targets[ponto_atual].split(',')[2]),2)
             else: #ponto de passagem nao tem angulo final
                 target_t = 99
-            x, y, t = goTo(target_x, target_y, target_t, target_d)  
+            #print("goTo="+str(ponto_atual))
+            #print("Dest="+str(dest))
+            if(ponto_atual == dest):
+                x, y, t = goTo(target_x, target_y, target_t, target_d, 1) 
+            else:                
+                x, y, t = goTo(target_x, target_y, target_t, target_d, 0)  
             if(obstaculo): 
                 ponto_aux = ponto_atual
-                ponto_atual = ponto_ant       
+                ponto_atual = ponto_ant            
+            #if(ponto_atual == dest):
+            #    carga_descarga(acao,ponto_atual,dest,rota,indice)
+            #print("indice="+str(indice)) 
             indice += 1
     resetar_grafo()
     carga_descarga(acao)
 
+    tempo.append(tempo_Aux)
+    traj_x.append(traj_x_Aux)
+    traj_y.append(traj_y_Aux)
+    traj_theta.append(traj_theta_Aux)
+
+    tempo_Aux = []
+    traj_x_Aux=[]
+    traj_y_Aux=[]
+    traj_theta_Aux=[]
+
+#Salva Arquivo com o dado desejado
+def salvarArquivo(nome,dado):
+    global pathName
+    # Create target directory & all intermediate directories if don't exists
+    if not os.path.exists(pathName):
+        os.makedirs(pathName)
+    else:
+        print("PASTA JA EXISTE, dados serao sobrescritos")
+        #break #nao sobrescreve os dados
+    # open a binary file in write mode
+    file = open(pathName+"/"+nome+".txt", "wb")
+    # save array to the file
+    np.save(file, dado)
+    # close the file
+    file.close
+
 #executa a lista de tarefas
 def execute_task(Task, historicoFile): 
+    global salvarTempo
+    global tempo_total
+    global erro_txt
+    global dist_calc
+    global traj_x
+    global traj_y
+    global traj_theta
+    global tempo
     line_index = 1
     text = ''
     qtdTask = len(Task)   
-    for i in range(qtdTask):        
+    tempoInicial = 0
+    salvarTempo = time.time()
+    for i in range(qtdTask):  
+        tempoInicial = time.time()      
         plan_route(int(Task[i].split(',')[0]),Task[i].split(',')[1])
         line_index += 1
         if(Task[i].split(',')[1] == 'C'):
             text = 'Carga:'+Task[i].split(',')[0]
+            tempo_total[0] += (time.time() - tempoInicial)
         else:
             text = 'Descarga:'+Task[i].split(',')[0]
+            tempo_total[1] += (time.time() - tempoInicial)
         gravarArq(historicoFile, ' - ' + text, line_index)
-        time.sleep(3)
+        #time.sleep(3)
+    #Salvar RESULTADOS nos arquivos
+    salvarArquivo("0-tempo_total",tempo_total)
+    salvarArquivo("1-erro_txt",erro_txt)
+    salvarArquivo("2-dist_calc",dist_calc)
+    salvarArquivo("3-traj_x",traj_x)
+    salvarArquivo("4-traj_y",traj_y)
+    salvarArquivo("5-traj_theta",traj_theta)
+    salvarArquivo("6-tempo",tempo)
+
+'''   
+'w':"0284", #frente
+'s':"0384", #tras
+'a':"0484", #esquerda
+'d':"0584", #direita
+'e':"0084", #gira Horario
+'q':"0184", #gira Anti Horario
+'z':"0684", #dFD
+'x':"0784", #dTE
+'c':"0884", #dFE
+'v':"0984", #dTD
+'r':"21"+str(valor), #controla Braco (0 - 13)
+#'f':"2202", #braco Baixo
+'t':"31"+str(valor), #controla Cima (0-18)
+#'g':"3203", #mao Baixo
+'y':"4199", #eletroima on
+'h':"4299", #eletroima off
+'p':"9999", #parado
+'b':"9998"  #para programa
+
+
+else if(abs(x - tX) > 2 or abs(y - tY) > 2):
+    if(abs(x - tX) > 2 and abs(y - tY) > 2):
+        #vai para frente
+    else if(abs(x - tX) > 2):
+        if(x > tX):
+            #Diminui X
+        else:
+            #Aumenta X
+    else: #Y
+        if(y > tY):
+            #Diminui Y
+        else:
+            #Aumenta Y
+'''
 
 def comandar(comandoLocal="999999"):    
     global start_time
@@ -915,33 +1153,44 @@ def getTasks():
             Task = []
             for archive in os.listdir(pathTasks):
                 Task = []
+                #print("Tarefa "+archive[0]) #nome do arquivo
                 gravarArq(historicoFile, "<br>> Tarefa "+archive.split('_')[0], 1)
                 textFile = open(pathTasks + archive, "r").read()
+                #print(textFile) #conteudo do arquivo
                 textFile = "".join(textFile.splitlines())
                 tasks = textFile.split(';') #separa as tarefas
                 del(tasks[len(tasks)-1]) # exclui a ultima linha vazia
                 for task in tasks:
+                    #print(' >' + task) #cada tarefa
                     if(task.split(':')[0] == 'Carga'):
                         Task.append(task.split(':')[1]+',C')
                     else:
                         Task.append(task.split(':')[1]+',D')
+                #print(Task)
                 execute_task(Task, historicoFile) #executa a tarefa lida de um arquivo
 
+                #print(qtdTask)
                 #movendo o arquivo
                 shutil.move(pathTasks+archive, pathExec)  
 
             tecladoInput = nbc.get_data()
+            #if (tecladoInput != False):
             if (tecladoInput == "s"):
                 break #se qlqr tecla for pressionada, para de executar
 
   
 
 def talker():
+    #cont = 0 #excluir
     ####################################
     #####       SETUP INICIO       #####
     ####################################
     global start_time
     global comando
+    #global targets
+    #global target_x
+    #global target_y
+    #global target_t
     global pub
     global tecladoInput
     global alvo
@@ -962,13 +1211,16 @@ def talker():
     cam = cv2.VideoCapture(1)
     #################################
     #####       SETUP FIM       #####
-    #################################    
+    #################################
+    #getAnImage() #precisa estar na pasta ros_unifesp/src para essa funcao funcionar, pressionar q
+    #while (not rospy.is_shutdown() and comando != "9998"):     
     while (alvo != 6 and comando != "999899"): 
         if (comandarTeclado): #apenas se o comando por teclado estiver ativado
             with NonBlockingConsole() as nbc:
                 tecladoInput = nbc.get_data()
                 #Executa enquanto nenhuma tecla eh pressionada
                 while True:
+                    #imageProcess()
                     getPosition()
                     tecladoInput = nbc.get_data()
                     if (tecladoInput != False):
@@ -978,7 +1230,35 @@ def talker():
         else: #autonomo
             getTasks() #ler arquivos e obter tarefas
             alvo = 6
-            
+            '''
+            target_x = int(targets[alvo].split(',')[0])
+            target_y = int(targets[alvo].split(',')[1])
+            target_t = round(float(targets[alvo].split(',')[2]),2)
+            x, y, t = goTo(target_x, target_y, target_t)
+            print("Alvo")
+            print(target_x, target_y, target_t)
+            print("Atual")
+            print(x, y, t)
+            alvo+=1
+            '''
+
+        #delay de 1 segundo (1 Hz) Delay real eh de 1,06 s
+        #20 Hz mas a leitura do arduino eh de 10 Hz
+        '''
+        if(time.time() - start_time >= 0.05):
+            start_time = time.time()
+            if (comandarTeclado):
+                comando = comandarTecladoFunc(tecladoInput)
+            pub.publish(comando)
+        '''
+            #rate.sleep()
+    '''
+    bracoFinal = time.time()
+    while(time.time() - bracoFinal < 8):
+        comandar("2101")
+        getPosition(target_x, target_y, target_t) 
+    '''
+
     ########################################
     #####       FINALIZAR INICIO       #####
     ########################################
@@ -995,14 +1275,26 @@ def talker():
 #RED (162, 87, 176)
 #GIMP   (H 0-360) (S 0-100) (V 0-100)
 #OPENCV (H 0-179) (S 0-255) (V 0-255)
+# Azul
+#THRESHOLD_LOW_BLUE = (80,140,87);
+#THRESHOLD_HIGH_BLUE = (120, 240, 130); 
+# Vermelho
+#THRESHOLD_LOW_RED = (0,130,120);
+#THRESHOLD_HIGH_RED = (15,240,180);
 
 # Azul
-THRESHOLD_LOW_BLUE = (85,155,135);
-THRESHOLD_HIGH_BLUE = (125, 255, 195); 
+THRESHOLD_LOW_BLUE = (92,155,135);
+THRESHOLD_HIGH_BLUE = (120, 255, 210); 
+#H = 215 - 219
+#S = 66 - 87
+#V = 69 - 58
 
 # Vermelho
-THRESHOLD_LOW_RED = (160,90,130);
+THRESHOLD_LOW_RED = (155,85,125);
 THRESHOLD_HIGH_RED = (190,180,190);
+#H = 345 - 347
+#S = 57 - 66
+#V = 68 - 59
 
 # Raio minimo para o circulo de contorno
 MIN_RADIUS = 2
@@ -1025,32 +1317,97 @@ CD_x = 0
 CD_y = 0
 CD_x2 = 0
 CD_y2 = 0
+# Pontos objetivos
+#targets = ['170,221,2.75', '144,58,4.69', '324,47,6.25', '390,85,3.1', '427,220,6.13', '555,135,3.48']
+#targets = ['144,85,1.55', '44,185,1.55'] #-0,65
 #inicial
-targets = ['140,315,4.7','115,315,99','115,125,99','230,125,3.16','325,125,99','420,125,3.16','545,125,99','545,315,99','523,315,1.57','325,315,99']
+targets = ['140,315,4.7','115,315,99','115,125,99','230,125,3.16','325,125,99','420,125,3.16','545,125,99','545,315,99','523,315,1.57','325,315,99',
+'115,180,99','325,180,99','545,180,99'
+]
+#targets = ['176,254,4.66', '176,75,99', '372,75,99', '372,263,99', '568,254,99', '568,91,3.14']
+# 3 = frente
+# 4 = tras
 
+
+# MAPA novos NOS
 Dijkstra.graph = Dijkstra.Graph([    
-    ("0", "1", d_p(targets[0], targets[1]),2),
-    ("1", "2", d_p(targets[1], targets[2]),2),
-    ("2", "3", d_p(targets[2], targets[3]),2),
-    ("3", "4", d_p(targets[3], targets[4]),2),
-    ("4", "5", d_p(targets[4], targets[5]),2),
-    ("5", "6", d_p(targets[5], targets[6]),2),
-    ("6", "7", d_p(targets[6], targets[7]),2),
-    ("7", "8", d_p(targets[7], targets[8]),4),
-    ("8", "9", d_p(targets[8], targets[9]),4),
-    ("4", "9", d_p(targets[9], targets[0]),0),
-
-    ("9", "8", d_p(targets[0], targets[1]),3),
-    ("8", "7", d_p(targets[1], targets[2]),3),
-    ("7", "6", d_p(targets[2], targets[3]),2),
-    ("6", "5", d_p(targets[3], targets[4]),2),
-    ("5", "4", d_p(targets[4], targets[5]),2),
-    ("4", "3", d_p(targets[5], targets[6]),2),
-    ("3", "2", d_p(targets[6], targets[7]),2),
-    ("2", "1", d_p(targets[7], targets[8]),2),
-    ("1", "0", d_p(targets[8], targets[9]),2),
-    ("9", "4", d_p(targets[9], targets[0]),0),
+    ("0", "1",  d_p(targets[0], targets[1]), 0),
+    ("0", "9",  d_p(targets[0], targets[9]), 0),
+    ("0", "10", d_p(targets[0], targets[10]),0),
+    ("1", "0",  d_p(targets[1], targets[0]), 0),
+    ("1", "10", d_p(targets[1], targets[10]),2),
+    ("2", "10", d_p(targets[2], targets[10]),2),
+    ("2", "3",  d_p(targets[2], targets[3]), 2),
+    ("3", "2",  d_p(targets[3], targets[2]), 2),
+    ("3", "4",  d_p(targets[3], targets[4]), 2),
+    ("3", "10", d_p(targets[3], targets[10]),2),
+    ("3", "11", d_p(targets[3], targets[11]),0),
+    ("4", "3",  d_p(targets[4], targets[3]), 2),
+    ("4", "5",  d_p(targets[4], targets[5]), 2),
+    ("4", "10", d_p(targets[4], targets[10]),2),
+    ("4", "11", d_p(targets[4], targets[11]),0),
+    ("4", "12", d_p(targets[4], targets[12]),2),
+    ("5", "4",  d_p(targets[5], targets[4]), 2),
+    ("5", "6",  d_p(targets[5], targets[6]), 2),
+    ("5", "11", d_p(targets[5], targets[11]),0),
+    ("5", "12", d_p(targets[5], targets[12]),2),
+    ("6", "5",  d_p(targets[6], targets[5]), 2),
+    ("6", "12", d_p(targets[6], targets[12]),2),
+    ("7", "8",  d_p(targets[7], targets[8]), 0),
+    ("7", "12", d_p(targets[7], targets[12]),2),
+    ("8", "7",  d_p(targets[8], targets[7]), 0),
+    ("8", "9",  d_p(targets[8], targets[9]), 0),
+    ("8", "12", d_p(targets[8], targets[12]),0),
+    ("9", "0",  d_p(targets[9], targets[0]), 0),
+    ("9", "8",  d_p(targets[9], targets[8]), 0),
+    ("9", "11", d_p(targets[9], targets[11]),0),
+    ("10", "0", d_p(targets[10], targets[0]),0),
+    ("10", "1", d_p(targets[10], targets[1]),2),
+    ("10", "2", d_p(targets[10], targets[2]),2),
+    ("10", "3", d_p(targets[10], targets[3]),2),
+    ("10", "4", d_p(targets[10], targets[4]),2),
+    ("11", "3", d_p(targets[11], targets[3]),0),
+    ("11", "4", d_p(targets[11], targets[4]),0),
+    ("11", "5", d_p(targets[11], targets[5]),0),
+    ("11", "9", d_p(targets[11], targets[9]),0),
+    ("12", "4", d_p(targets[12], targets[4]),2),
+    ("12", "5", d_p(targets[12], targets[5]),2),
+    ("12", "6", d_p(targets[12], targets[6]),2),
+    ("12", "7", d_p(targets[12], targets[7]),2),
+    ("12", "8", d_p(targets[12], targets[8]),0),
 ])
+
+
+# MAPA 1 
+# Dijkstra.graph = Dijkstra.Graph([    
+#     ("0", "1", d_p(targets[0], targets[1]),2),
+#     ("1", "2", d_p(targets[1], targets[2]),2),
+#     ("2", "3", d_p(targets[2], targets[3]),2),
+#     ("3", "4", d_p(targets[3], targets[4]),2),
+#     ("4", "5", d_p(targets[4], targets[5]),2),
+#     ("5", "6", d_p(targets[5], targets[6]),2),
+#     ("6", "7", d_p(targets[6], targets[7]),2),
+#     ("7", "8", d_p(targets[7], targets[8]),4),
+#     ("8", "9", d_p(targets[8], targets[9]),4),
+#     #("9", "0", d_p(targets[9], targets[0]),0),
+#     ("4", "9", d_p(targets[9], targets[0]),0),
+
+#     ("9", "8", d_p(targets[0], targets[1]),3),
+#     ("8", "7", d_p(targets[1], targets[2]),3),
+#     ("7", "6", d_p(targets[2], targets[3]),2),
+#     ("6", "5", d_p(targets[3], targets[4]),2),
+#     ("5", "4", d_p(targets[4], targets[5]),2),
+#     ("4", "3", d_p(targets[5], targets[6]),2),
+#     ("3", "2", d_p(targets[6], targets[7]),2),
+#     ("2", "1", d_p(targets[7], targets[8]),2),
+#     ("1", "0", d_p(targets[8], targets[9]),2),
+#     #("0", "9", d_p(targets[9], targets[0]),0),
+#     ("9", "4", d_p(targets[9], targets[0]),0),
+# ])
+
+#Task = ['5,C', '0,D']
+#qtdTask = len(Task)
+
 
 target_x = 0
 target_y = 0
@@ -1065,6 +1422,7 @@ img_time = time.time()
 
 if __name__ == '__main__':
     try:        
+        #print(Dijkstra.graph.dijkstra("0", "5"))
         talker()
     except rospy.ROSInterruptException:
         pass

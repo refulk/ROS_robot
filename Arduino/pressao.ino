@@ -11,6 +11,9 @@ int fsrReading;      // the analog reading from the FSR resistor divider
 
 #define LED_PIN_3            3
 
+//unsigned long millisRead = 0;
+//unsigned int delayRead = 100;
+
 void setupPressao() 
 {
   pinMode(LED_PIN_3  , OUTPUT);  

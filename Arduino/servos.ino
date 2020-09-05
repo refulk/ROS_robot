@@ -72,7 +72,12 @@ void setupServos() {
   myservo2.attach(4); // Servo2
   myservo3.attach(6); // Servo3
   myservo4.attach(11); // Servo4 ( mais proximo da escrita servo)
-    
+  
+  //myservo1.attach(11); // Servo1 (mais proximo dos 5V)
+  //myservo2.attach(6); // Servo2
+  //myservo3.attach(5); // Servo3
+  //myservo4.attach(4); // Servo4 ( mais proximo da escrita servo)
+  
   servoPos1 = servoUm[13];
   servoPos2 = servoDois[13];
   servoPos3 = servoTres[10];
@@ -81,6 +86,8 @@ void setupServos() {
   myservo2.write(servoPos2);
   myservo3.write(servoPos3);
   myservo4.write(servoPos4);
+  //moveBraco(13);
+  //moveMao(10);  
 }
 
 //posicao vai de 0 ate 13
@@ -121,6 +128,8 @@ void moveBraco(int pos)
 void moveMao(int pos)
 {
   pos = 18 - pos;
+  //myservo3.write(servoTres[pos]);
+  //myservo4.write(servoQuatro[pos]); 
   if(
   (servoPos3 != servoTres[pos] || servoPos4 != servoQuatro[pos])
   && delayMillis(&millisMao, delayMao)
@@ -177,6 +186,21 @@ void amaciarMotor()
       delayTemp1 = 8000;
     }
     moveBraco(bracoTemp);
-    moveMao(maoTemp);  
+    moveMao(maoTemp);
+    
+    /*
+    myservo1.write(0);
+    myservo2.write(0);
+    delay(2000);
+    myservo3.write(0);
+    myservo4.write(0); 
+    delay(2000);
+    myservo1.write(180);
+    myservo2.write(180);
+    delay(2000);
+    myservo3.write(180);
+    myservo4.write(180); 
+    delay(2000); 
+    */    
   } 
 }

@@ -36,6 +36,7 @@ boolean delayMillisKeep(unsigned long *millisCount, unsigned int delayCount)
 {
   if(millis() >= (*millisCount + delayCount))
   {
+//    *millisCount = millis();
     return true;
   }
   else
@@ -43,6 +44,11 @@ boolean delayMillisKeep(unsigned long *millisCount, unsigned int delayCount)
     return false;
   }
 }
+
+//void loopUteis()
+//{
+//  
+//}
 
 
  
